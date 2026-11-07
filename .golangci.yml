@@ -12,6 +12,12 @@ linters:
         - diagnostic
         - style
         - performance
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
   exclusions:
     generated: lax
     paths:
