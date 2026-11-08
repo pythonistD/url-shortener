@@ -12,11 +12,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jmoiron/sqlx"
 	"github.com/pythonistD/url-shortener/internal/api"
 	"github.com/pythonistD/url-shortener/internal/config"
 	"github.com/pythonistD/url-shortener/internal/counter"
+	"github.com/pythonistD/url-shortener/internal/external"
 	"github.com/pythonistD/url-shortener/internal/logger"
 	"github.com/pythonistD/url-shortener/internal/repo/inmem"
+	"github.com/pythonistD/url-shortener/internal/repo/postgres"
 	"github.com/pythonistD/url-shortener/internal/service"
 )
 
@@ -32,13 +35,23 @@ func main() {
 
 	var (
 		storage service.Storage
-		cnt     service.Counter
+		db      *sqlx.DB
 	)
 
-	if cfg.Storage.Type == "in-memory" {
+	cnt := counter.NewInMemory(0)
+
+	switch cfg.Storage.Type {
+	case "in-memory":
 		storage = inmem.New()
-		cnt = counter.NewInMemory(0)
-	} else {
+	case "postgres":
+		db, err = external.NewPostgres(cfg.Postgres)
+		if err != nil {
+			log.Error("failed to connect to postgres", "error", err)
+			os.Exit(1)
+		}
+
+		storage = postgres.New(db)
+	default:
 		log.Error("unsupported storage type", "type", cfg.Storage.Type)
 		os.Exit(1)
 	}
@@ -86,6 +99,12 @@ func main() {
 	}
 
 	wg.Wait()
+
+	if db != nil {
+		if closeErr := db.Close(); closeErr != nil {
+			log.Error("failed to close postgres connection", "error", closeErr)
+		}
+	}
 
 	log.Info("server stopped gracefully")
 }
