@@ -1,0 +1,20 @@
+env: "local"
+
+server:
+  port: 8080
+  timeout: 5s
+  idle_timeout: 60s
+
+storage:
+  type: "in-memory" # "in-memory" or "postgres"
+
+url:
+  default_ttl_sec: 31536000 # 1 год (365 дней)
+  max_ttl_sec: 31536000
+
+postgres:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "" # в .env задаём
+  db_name: "url_shortener"

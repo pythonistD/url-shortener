@@ -21,6 +21,13 @@ type Handler struct {
 	service Shortener
 }
 
+func New(logger *slog.Logger, service Shortener) *Handler {
+	return &Handler{
+		logger:  logger,
+		service: service,
+	}
+}
+
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/url", h.RegisterURL)
 	r.Get("/{short_url}", h.Redirect)

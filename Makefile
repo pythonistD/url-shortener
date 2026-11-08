@@ -1,4 +1,4 @@
-.PHONY: lint test build run clean
+.PHONY: lint test build run clean smoke compose-up compose-down
 
 lint:
 	golangci-lint run ./...
@@ -12,6 +12,14 @@ build:
 run:
 	go run ./cmd/server
 
+smoke:
+	./scripts/smoke-tests.sh
+
+compose-up: build
+	docker-compose up -d --build
+
+compose-down:
+	docker-compose down
+
 clean:
 	rm -rf bin/
-
