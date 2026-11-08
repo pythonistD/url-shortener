@@ -4,7 +4,7 @@ set -euo pipefail
 if [ -z "${BASE_URL:-}" ] && [ -n "${SERVER_PORT:-}" ]; then
   BASE_URL="http://localhost:${SERVER_PORT}"
 fi
-BASE_URL="${1:-${BASE_URL:-http://localhost}}"
+BASE_URL="${1:-${BASE_URL:-http://localhost:8080}}"
 
 echo "Running smoke tests against ${BASE_URL}..."
 
