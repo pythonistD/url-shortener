@@ -41,9 +41,15 @@ flowchart TD
         Handlers ~~~ InMemory
     end
 
+    subgraph Redis["Redis"]
+        RedisCounter["Atomic counter"]
+    end
+
+    Service --> Redis
     Service --> Postgres[("Postgres")]
 ```
-
+- Redis: отдельно выделил счётчик, чтобы была возможность горизонтально масштабировать сервис. В дальнейшем может выполнять функцию не только счётчика, но и кэша.
+- 
 ## API
 - Создание короткой ссылки:
 ```json
@@ -73,4 +79,6 @@ Status: HTTP 302
 -   **short**: сокращённая ссылка,
 -   **created_at**: время создания ссылки,
 -   **expires_at**: время, когда ссылка перестает быть активной (TTL).
+
+TTL по умолчанию ставиться на 1 год.
 
