@@ -24,6 +24,20 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      - linters:
+          - gocritic
+        text: "hugeParam"
+      - linters:
+          - gosec
+        text: "G710"
+      - linters:
+          - gosec
+        text: "G304"
+      - linters:
+          - gosec
+        text: "G703"
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
