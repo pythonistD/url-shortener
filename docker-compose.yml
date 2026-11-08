@@ -58,7 +58,8 @@ services:
       dockerfile: Dockerfile
     container_name: url-shortener
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - ENV=${ENV:-local}
       - SERVER_PORT=${SERVER_PORT:-8080}
@@ -73,8 +74,8 @@ services:
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
-    expose:
-      - "8080"
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy

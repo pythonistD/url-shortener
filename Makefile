@@ -1,9 +1,10 @@
-.PHONY: lint test build run clean smoke compose-up compose-down migrate-up migrate-down migrate-status
+.PHONY: lint test test-integration test-all build run clean smoke compose-up compose-down migrate-up migrate-down migrate-status
 
 -include .env
 export
 
 POSTGRES_USER ?= postgres
+POSTGRES_PASSWORD ?= secret
 POSTGRES_PORT_HOST ?= 5433
 POSTGRES_DB ?= url_shortener
 
@@ -14,6 +15,11 @@ lint:
 
 test:
 	go test -v -race -cover ./...
+
+test-integration:
+	go test -v -race -tags=integration ./...
+
+test-all: test test-integration
 
 build:
 	go build -o bin/server ./cmd/server
