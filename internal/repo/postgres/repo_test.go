@@ -1,4 +1,4 @@
-package postgres_test
+package postgres
 
 import (
 	"context"
@@ -12,7 +12,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pressly/goose/v3"
 	"github.com/pythonistD/url-shortener/internal/model"
-	"github.com/pythonistD/url-shortener/internal/repo/postgres"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -80,7 +79,7 @@ func truncateTable(t *testing.T) {
 
 func TestRepository_SaveAndGet(t *testing.T) {
 	truncateTable(t)
-	repo := postgres.New(testDB)
+	repo := New(testDB)
 	ctx := context.Background()
 
 	now := time.Now().UTC().Truncate(time.Millisecond)
@@ -112,7 +111,7 @@ func TestRepository_SaveAndGet(t *testing.T) {
 
 func TestRepository_NotFound(t *testing.T) {
 	truncateTable(t)
-	repo := postgres.New(testDB)
+	repo := New(testDB)
 	ctx := context.Background()
 
 	_, err := repo.GetByOriginal(ctx, "https://fake.com")
@@ -124,7 +123,7 @@ func TestRepository_NotFound(t *testing.T) {
 
 func TestRepository_DuplicateShort(t *testing.T) {
 	truncateTable(t)
-	repo := postgres.New(testDB)
+	repo := New(testDB)
 	ctx := context.Background()
 
 	now := time.Now().UTC()

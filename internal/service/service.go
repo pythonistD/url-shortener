@@ -24,7 +24,7 @@ type Storage interface {
 }
 
 type Counter interface {
-	Inc() uint64
+	Inc(ctx context.Context) (uint64, error)
 }
 
 type URLShorten struct {
@@ -65,7 +65,10 @@ func (s *URLShorten) Shorten(ctx context.Context, original string, ttl *uint64) 
 		expiresAt = now.Add(defaultTTL)
 	}
 
-	num := s.counter.Inc()
+	num, err := s.counter.Inc(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to increment counter: %w", err)
+	}
 	short, err := base63.Encode(num)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode short url: %w", err)

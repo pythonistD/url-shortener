@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,11 +12,18 @@ import (
 
 type counterMock struct {
 	val uint64
+	err error
 }
 
-func (c *counterMock) Inc() uint64 {
+func (c *counterMock) Inc(ctx context.Context) (uint64, error) {
+	if c.err != nil {
+		return 0, c.err
+	}
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
 	c.val++
-	return c.val
+	return c.val, nil
 }
 
 type storageMock struct {
@@ -225,6 +233,20 @@ func TestShorten_Negative(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("counter error", func(t *testing.T) {
+		storage := newStorageMock()
+		counter := &counterMock{err: errors.New("counter failure")}
+		svc := New(storage, counter)
+
+		_, err := svc.Shorten(context.Background(), "https://google.com", nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "failed to increment counter") {
+			t.Errorf("unexpected error message: %v", err)
+		}
+	})
 }
 
 func TestGetURL_Positive(t *testing.T) {
