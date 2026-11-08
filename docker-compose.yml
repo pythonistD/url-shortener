@@ -15,6 +15,26 @@ services:
     networks:
       - app-network
 
+  postgres:
+    image: postgres:18-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-url_shortener}
+    ports:
+      - "${POSTGRES_PORT_HOST:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-url_shortener}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
   url-shortener:
     build:
       context: .
@@ -23,11 +43,19 @@ services:
     env_file:
       - .env
     environment:
-      - ENV=local
-      - SERVER_PORT=8080
-      - STORAGE_TYPE=in-memory
+      - ENV=${ENV:-local}
+      - SERVER_PORT=${SERVER_PORT:-8080}
+      - STORAGE_TYPE=${STORAGE_TYPE:-postgres}
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secret}
+      - POSTGRES_DB=${POSTGRES_DB:-url_shortener}
     expose:
       - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.url-shortener.rule=PathPrefix(`/`)"
@@ -39,6 +67,10 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+
+volumes:
+  postgres_data:
+    driver: local
 
 networks:
   app-network:

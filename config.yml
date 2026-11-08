@@ -18,3 +18,6 @@ postgres:
   user: "postgres"
   password: "" # в .env задаём
   db_name: "url_shortener"
+  max_open_connections: 25
+  max_idle_connections: 25
+  max_connection_lifetime: 5m

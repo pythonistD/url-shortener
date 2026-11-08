@@ -11,11 +11,11 @@ import (
 )
 
 type Config struct {
-	Env      string         `yaml:"env"`
-	Server   ServerConfig   `yaml:"server"`
-	Storage  StorageConfig  `yaml:"storage"`
-	URL      URLConfig      `yaml:"url"`
-	Postgres PostgresConfig `yaml:"postgres"`
+	Env      string        `yaml:"env"`
+	Server   ServerConfig  `yaml:"server"`
+	Storage  StorageConfig `yaml:"storage"`
+	URL      URLConfig     `yaml:"url"`
+	Postgres DBConfig      `yaml:"postgres"`
 }
 
 type ServerConfig struct {
@@ -33,13 +33,18 @@ type URLConfig struct {
 	MaxTTLSec     uint64 `yaml:"max_ttl_sec"`
 }
 
-type PostgresConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	DBName   string `yaml:"db_name"`
+type DBConfig struct {
+	Host                  string        `yaml:"host"`
+	Port                  int           `yaml:"port"`
+	User                  string        `yaml:"user"`
+	Password              string        `yaml:"password"`
+	DBName                string        `yaml:"db_name"`
+	MaxOpenConnections    int           `yaml:"max_open_connections"`
+	MaxIdleConnections    int           `yaml:"max_idle_connections"`
+	MaxConnectionLifeTime time.Duration `yaml:"max_connection_lifetime"`
 }
+
+type PostgresConfig = DBConfig
 
 func Load() (*Config, error) {
 	_ = godotenv.Load()
@@ -99,5 +104,23 @@ func overrideWithEnv(cfg *Config) {
 
 	if val := os.Getenv("POSTGRES_DB"); val != "" {
 		cfg.Postgres.DBName = val
+	}
+
+	if val := os.Getenv("POSTGRES_MAX_OPEN_CONNS"); val != "" {
+		if n, err := strconv.Atoi(val); err == nil {
+			cfg.Postgres.MaxOpenConnections = n
+		}
+	}
+
+	if val := os.Getenv("POSTGRES_MAX_IDLE_CONNS"); val != "" {
+		if n, err := strconv.Atoi(val); err == nil {
+			cfg.Postgres.MaxIdleConnections = n
+		}
+	}
+
+	if val := os.Getenv("POSTGRES_MAX_CONN_LIFETIME"); val != "" {
+		if d, err := time.ParseDuration(val); err == nil {
+			cfg.Postgres.MaxConnectionLifeTime = d
+		}
 	}
 }
