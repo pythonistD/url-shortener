@@ -35,6 +35,23 @@ services:
     networks:
       - app-network
 
+  redis:
+    image: redis:8-alpine
+    container_name: url-shortener-redis
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "${REDIS_PORT_HOST:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
   url-shortener:
     build:
       context: .
@@ -46,15 +63,22 @@ services:
       - ENV=${ENV:-local}
       - SERVER_PORT=${SERVER_PORT:-8080}
       - STORAGE_TYPE=${STORAGE_TYPE:-postgres}
+      - COUNTER_TYPE=${COUNTER_TYPE:-redis}
       - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secret}
       - POSTGRES_DB=${POSTGRES_DB:-url_shortener}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
     expose:
       - "8080"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
@@ -70,6 +94,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

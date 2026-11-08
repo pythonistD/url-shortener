@@ -15,12 +15,14 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pythonistD/url-shortener/internal/api"
 	"github.com/pythonistD/url-shortener/internal/config"
-	"github.com/pythonistD/url-shortener/internal/counter"
+	inmemCounter "github.com/pythonistD/url-shortener/internal/counter/inmem"
+	redisCounter "github.com/pythonistD/url-shortener/internal/counter/redis"
 	"github.com/pythonistD/url-shortener/internal/external"
 	"github.com/pythonistD/url-shortener/internal/logger"
-	"github.com/pythonistD/url-shortener/internal/repo/inmem"
+	inmemRepo "github.com/pythonistD/url-shortener/internal/repo/inmem"
 	"github.com/pythonistD/url-shortener/internal/repo/postgres"
 	"github.com/pythonistD/url-shortener/internal/service"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -31,18 +33,18 @@ func main() {
 	}
 
 	log := logger.New(cfg.Env)
-	log.Info("config loaded", "env", cfg.Env, "port", cfg.Server.Port, "storage", cfg.Storage.Type)
+	log.Info("config loaded", "env", cfg.Env, "port", cfg.Server.Port, "storage", cfg.Storage.Type, "counter", cfg.Counter.Type)
 
 	var (
 		storage service.Storage
+		cnt     service.Counter
 		db      *sqlx.DB
+		rdb     *redis.Client
 	)
-
-	cnt := counter.NewInMemory(0)
 
 	switch cfg.Storage.Type {
 	case "in-memory":
-		storage = inmem.New()
+		storage = inmemRepo.New()
 	case "postgres":
 		db, err = external.NewPostgres(cfg.Postgres)
 		if err != nil {
@@ -53,6 +55,29 @@ func main() {
 		storage = postgres.New(db)
 	default:
 		log.Error("unsupported storage type", "type", cfg.Storage.Type)
+		os.Exit(1)
+	}
+
+	if cfg.Redis.Host != "" {
+		rdb, err = external.NewRedis(cfg.Redis)
+		if err != nil {
+			log.Error("failed to connect to redis", "error", err)
+			os.Exit(1)
+		}
+		log.Info("connected to redis", "addr", fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port))
+	}
+
+	switch cfg.Counter.Type {
+	case "in-memory":
+		cnt = inmemCounter.New(0)
+	case "redis":
+		if rdb == nil {
+			log.Error("redis client is not initialized for redis counter")
+			os.Exit(1)
+		}
+		cnt = redisCounter.New(rdb, "url_shortener:counter")
+	default:
+		log.Error("unsupported counter type", "type", cfg.Counter.Type)
 		os.Exit(1)
 	}
 
@@ -103,6 +128,12 @@ func main() {
 	if db != nil {
 		if closeErr := db.Close(); closeErr != nil {
 			log.Error("failed to close postgres connection", "error", closeErr)
+		}
+	}
+
+	if rdb != nil {
+		if closeErr := rdb.Close(); closeErr != nil {
+			log.Error("failed to close redis connection", "error", closeErr)
 		}
 	}
 

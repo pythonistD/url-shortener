@@ -14,8 +14,10 @@ type Config struct {
 	Env      string        `yaml:"env"`
 	Server   ServerConfig  `yaml:"server"`
 	Storage  StorageConfig `yaml:"storage"`
+	Counter  CounterConfig `yaml:"counter"`
 	URL      URLConfig     `yaml:"url"`
 	Postgres DBConfig      `yaml:"postgres"`
+	Redis    RedisConfig   `yaml:"redis"`
 }
 
 type ServerConfig struct {
@@ -25,6 +27,10 @@ type ServerConfig struct {
 }
 
 type StorageConfig struct {
+	Type string `yaml:"type"`
+}
+
+type CounterConfig struct {
 	Type string `yaml:"type"`
 }
 
@@ -45,6 +51,17 @@ type DBConfig struct {
 }
 
 type PostgresConfig = DBConfig
+
+type RedisConfig struct {
+	Host         string        `yaml:"host"`
+	Port         int           `yaml:"port"`
+	Password     string        `yaml:"password"`
+	DB           int           `yaml:"db"`
+	DialTimeout  time.Duration `yaml:"dial_timeout"`
+	ReadTimeout  time.Duration `yaml:"read_timeout"`
+	WriteTimeout time.Duration `yaml:"write_timeout"`
+	PoolSize     int           `yaml:"pool_size"`
+}
 
 func Load() (*Config, error) {
 	_ = godotenv.Load()
@@ -84,6 +101,10 @@ func overrideWithEnv(cfg *Config) {
 		cfg.Storage.Type = val
 	}
 
+	if val := os.Getenv("COUNTER_TYPE"); val != "" {
+		cfg.Counter.Type = val
+	}
+
 	if val := os.Getenv("POSTGRES_HOST"); val != "" {
 		cfg.Postgres.Host = val
 	}
@@ -121,6 +142,26 @@ func overrideWithEnv(cfg *Config) {
 	if val := os.Getenv("POSTGRES_MAX_CONN_LIFETIME"); val != "" {
 		if d, err := time.ParseDuration(val); err == nil {
 			cfg.Postgres.MaxConnectionLifeTime = d
+		}
+	}
+
+	if val := os.Getenv("REDIS_HOST"); val != "" {
+		cfg.Redis.Host = val
+	}
+
+	if val := os.Getenv("REDIS_PORT"); val != "" {
+		if port, err := strconv.Atoi(val); err == nil {
+			cfg.Redis.Port = port
+		}
+	}
+
+	if val := os.Getenv("REDIS_PASSWORD"); val != "" {
+		cfg.Redis.Password = val
+	}
+
+	if val := os.Getenv("REDIS_DB"); val != "" {
+		if db, err := strconv.Atoi(val); err == nil {
+			cfg.Redis.DB = db
 		}
 	}
 }
